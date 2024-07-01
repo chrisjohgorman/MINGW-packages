@@ -1,0 +1,58 @@
+# Maintainer: Chris Gorman <chrisjohgorman@gmail.com>
+
+_realname=gr-satellites
+pkgbase=mingw-w64-${_realname}
+pkgname=("${MINGW_PACKAGE_PREFIX}-${_realname}")
+pkgver=5.5.0
+pkgrel=1
+pkgdesc="Satellite decoder bocks for GNURadio (mingw-w64)"
+arch=('any')
+mingw_arch=('mingw64' 'ucrt64' 'clang64' 'clangarm64')
+url='https://github.com/daniestevez/gr-satellites'
+license=('GPL3')
+depends=("${MINGW_PACKAGE_PREFIX}-fmt" #FIXME dani's docs don't mention this
+	 "${MINGW_PACKAGE_PREFIX}-gnuradio-iqbal"
+	 "${MINGW_PACKAGE_PREFIX}-orc"
+	 "${MINGW_PACKAGE_PREFIX}-python-construct"
+	 "${MINGW_PACKAGE_PREFIX}-python-requests"
+	 "${MINGW_PACKAGE_PREFIX}-python-websocket-client")
+makedepends=("${MINGW_PACKAGE_PREFIX}-cmake"
+             "${MINGW_PACKAGE_PREFIX}-ninja"
+             "${MINGW_PACKAGE_PREFIX}-pybind11"
+             "${MINGW_PACKAGE_PREFIX}-cc")
+#FIXME - need to build feh
+#optdepends=("${MINGW_PACKAGE_PREFIX}-feh: for realtime image decoders")
+optdepends=("${MINGW_PACKAGE_PREFIX}-doxygen: for document generation")
+source=("${_realname}-${pkgver}.tar.gz::$url/archive/refs/tags/v${pkgver}.tar.gz")
+sha256sums=('5c5b593259b168be8d3a1c10b385a4dd03ffc5f0113e9a95c8ee749dfb9bd77b')
+
+build() {
+  declare -a extra_config
+  if check_option "debug" "n"; then
+    extra_config+=("-DCMAKE_BUILD_TYPE=Release")
+  else
+    extra_config+=("-DCMAKE_BUILD_TYPE=Debug")
+  fi
+
+  MSYS2_ARG_CONV_EXCL="-DCMAKE_INSTALL_PREFIX=" \
+    "${MINGW_PREFIX}"/bin/cmake.exe \
+      -GNinja \
+      -DCMAKE_INSTALL_PREFIX="${MINGW_PREFIX}" \
+      "${extra_config[@]}" \
+      -DCMAKE_SKIP_RPATH=YES \
+      -DBUILD_SHARED_LIBS=ON \
+      -S "${_realname}-${pkgver}" \
+      -B "build-${MSYSTEM}"
+
+  "${MINGW_PREFIX}"/bin/cmake.exe --build "build-${MSYSTEM}"
+}
+
+check() {
+  "${MINGW_PREFIX}"/bin/cmake.exe --build "build-${MSYSTEM}" --target test || warning "Tests failed"
+}
+
+package() {
+  DESTDIR="${pkgdir}" "${MINGW_PREFIX}"/bin/cmake.exe --install "build-${MSYSTEM}"
+
+  install -Dm644 "${srcdir}/${_realname}-${pkgver}/LICENSE" "${pkgdir}${MINGW_PREFIX}/share/licenses/${_realname}/LICENSE"
+}
