@@ -1,0 +1,43 @@
+# Maintainer: Chris Gorman <chrisjohgorman@gmail.com>
+
+_realname=erfa
+pkgbase=mingw-w64-${_realname}
+pkgname=("${MINGW_PACKAGE_PREFIX}-${_realname}")
+pkgver=2.0.1
+pkgrel=1
+pkgdesc="Essential Routines for Funadamental Astronomy (mingw-w64)"
+arch=('any')
+mingw_arch=('mingw64' 'ucrt64' 'clang64' 'clangarm64')
+url='https://github.com/liberfa/erfa'
+license=(BSD)
+makedepends=("${MINGW_PACKAGE_PREFIX}-autotools"
+             "${MINGW_PACKAGE_PREFIX}-cc")
+source=("${url}/releases/download/v${pkgver}/${_realname}-${pkgver}.tar.xz")
+sha256sums=('45111f0addf6ef69345aaf093bd054705b41ac2db7541dd3f0e105362c8e20e4')
+
+prepare() {
+  cd "${srcdir}/${_realname}-${pkgver}"
+  ./bootstrap.sh
+}
+
+build() {
+  cd "${srcdir}/${_realname}-${pkgver}"
+  mkdir -p "${srcdir}/build-${MSYSTEM}" && cd "${srcdir}/build-${MSYSTEM}"
+
+  ../"${_realname}-${pkgver}"/configure \
+    --prefix="${MINGW_PREFIX}" \
+    --build="${MINGW_CHOST}" \
+    --host="${MINGW_CHOST}" \
+    --target="${MINGW_CHOST}" \
+    --enable-shared
+
+  make
+}
+
+package() {
+  cd "${srcdir}/build-${MSYSTEM}"
+
+  make install DESTDIR="${pkgdir}"
+
+  install -Dm644 "${srcdir}/${_realname}-${pkgver}/LICENSE" "${pkgdir}${MINGW_PREFIX}/share/licenses/${_realname}/LICENSE"
+}
