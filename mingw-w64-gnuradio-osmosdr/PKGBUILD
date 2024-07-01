@@ -1,0 +1,70 @@
+# Maintainer: Chris Gorman <chrisjohgorman@gmail.com>
+
+_realname=gnuradio-osmosdr
+pkgbase=mingw-w64-${_realname}
+pkgname=("${MINGW_PACKAGE_PREFIX}-${_realname}")
+pkgver=0.2.5
+pkgrel=1
+pkgdesc="Source block for Funcube Dongle, RTL-SDR, USRP, OsmoSDR, BladeRF, HackRF and AirSpy devices (mingw-w64)"
+arch=('any')
+mingw_arch=('mingw64' 'ucrt64' 'clang64' 'clangarm64')
+url="https://osmocom.org/projects/gr-osmosdr"
+license=('GPL3')
+depends=("${MINGW_PACKAGE_PREFIX}-airspy"
+         "${MINGW_PACKAGE_PREFIX}-bladerf"
+         "${MINGW_PACKAGE_PREFIX}-gcc-libs"
+         "${MINGW_PACKAGE_PREFIX}-hackrf"
+         "${MINGW_PACKAGE_PREFIX}-libuhd"
+         "${MINGW_PACKAGE_PREFIX}-volk"
+         "${MINGW_PACKAGE_PREFIX}-soapysdr"
+         "${MINGW_PACKAGE_PREFIX}-rtl-sdr")
+makedepends=("${MINGW_PACKAGE_PREFIX}-cmake"
+             "${MINGW_PACKAGE_PREFIX}-ninja"
+             "${MINGW_PACKAGE_PREFIX}-cc"
+             "${MINGW_PACKAGE_PREFIX}-boost"
+             "${MINGW_PACKAGE_PREFIX}-gnuradio"
+             "${MINGW_PACKAGE_PREFIX}-gnuradio-iqbal"
+             "${MINGW_PACKAGE_PREFIX}-pybind11"
+             'git')
+_commit='73d8982ac0d1f05461d49c379bb45f018c5f32f2'
+source=("${_realname}"::"git+https://gitea.osmocom.org/sdr/gr-osmosdr.git#tag=${_commit}")
+sha256sums=('121d0e9be0b8f8d1ef47f1258b01775d8a6961c9313f24af60a4a37edf179490')
+
+build() {
+  declare -a extra_config
+  if check_option "debug" "n"; then
+    extra_config+=("-DCMAKE_BUILD_TYPE=Release")
+  else
+    extra_config+=("-DCMAKE_BUILD_TYPE=Debug")
+  fi
+
+  MSYS2_ARG_CONV_EXCL="-DCMAKE_INSTALL_PREFIX=" \
+    "${MINGW_PREFIX}"/bin/cmake.exe \
+      -GNinja \
+      -DCMAKE_INSTALL_PREFIX="${MINGW_PREFIX}" \
+      "${extra_config[@]}" \
+      -D Boost_NO_BOOST_CMAKE=ON \
+      -D ENABLE_AIRSPY=ON \
+      -D ENABLE_BLADERF=ON \
+      -D ENABLE_FILE=ON \
+      -D ENABLE_HACKRF=ON \
+      -D ENABLE_IQBALANCE=ON \
+      -D ENABLE_PYTHON=ON \
+      -D ENABLE_RFSPACE=OFF \
+      -D ENABLE_REDPITAYA=OFF \
+      -D ENABLE_RTL=ON \
+      -D ENABLE_RTL_TCP=ON \
+      -D ENABLE_SOAPY=ON \
+      -D ENABLE_UHD=ON \
+      -DBUILD_SHARED_LIBS=ON \
+      -S "${_realname}" \
+      -B "build-${MSYSTEM}"
+
+  "${MINGW_PREFIX}"/bin/cmake.exe --build "build-${MSYSTEM}"
+}
+
+package() {
+  DESTDIR="${pkgdir}" "${MINGW_PREFIX}"/bin/cmake.exe --install "build-${MSYSTEM}"
+
+  install -Dm644 "${srcdir}/${_realname}/COPYING" "${pkgdir}${MINGW_PREFIX}/share/licenses/${_realname}/COPYING"
+}
