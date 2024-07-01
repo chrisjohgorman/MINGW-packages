@@ -1,0 +1,94 @@
+# Maintainer: Chris Gorman <chrisjohgorman@gmail.com>
+
+_realname=wcslib
+pkgbase=mingw-w64-${_realname}
+pkgname=("${MINGW_PACKAGE_PREFIX}-${_realname}")
+pkgver=8.2.2
+pkgrel=1
+pkgdesc="A C library that implements the 'World Coordinate System' (WCS) standard in FITS (mingw-w64)"
+arch=('any')
+mingw_arch=('mingw64' 'ucrt64' 'clang64' 'clangarm64')
+url='https://www.atnf.csiro.au/people/Mark.Calabretta/WCS/'
+license=('GPL3')
+depends=("${MINGW_PACKAGE_PREFIX}-cfitsio")
+makedepends=("${MINGW_PACKAGE_PREFIX}-gcc"
+	"${MINGW_PACKAGE_PREFIX}-gcc-fortran")
+source=("http://www.atnf.csiro.au/people/mcalabre/WCS/${_realname}-${pkgver}.tar.bz2")
+sha256sums=('6298220ae817f4e5522643ac4c3da2623be70a3484b1a4f37060bee3e4bd7833')
+
+prepare() {
+  # this is probably not necessary, remove off_t test
+  cd "${srcdir}/${_realname}-${pkgver}"
+  sed -i 's/AC_TYPE_OFF_T//' configure.ac
+  autoconf
+}
+
+build() {
+  cd "${srcdir}/${_realname}-${pkgver}"
+
+  #export CFLAGS+=" -ffat-lto-objects" 
+  CFLAGS="-ffat-lto-objects" CPPFLAGS=" -DNO_OLDNAMES" \
+  ./configure \
+    --prefix="${MINGW_PREFIX}" \
+    --build="${MINGW_CHOST}" \
+    --host="${MINGW_CHOST}" \
+    --target="${MINGW_CHOST}" \
+    --enable-shared \
+    --without-pgplot
+
+  # remove -DNO_OLDNAMES from utils to facliltate building  
+  cp makedefs makedefs.utils
+  sed -i 's/-DNO_OLDNAMES//' makedefs.utils
+  sed -i 's/include \.\.\/makedefs/include ..\/makedefs.utils/' utils/GNUMakefile
+  # we can't change permissions of directories
+  sed -i 's/INSTALL) -d -m 775 $(HTMLDIR/INSTALL) -d $(HTMLDIR/' doxygen/GNUMakefile
+  # make seems to prefer Makefiles rather than GNUmakefiles
+  ln -s GNUmakefile Makefile
+  cd C
+  ln -s GNUmakefile Makefile
+  cd ..
+  cd doxygen
+  ln -s GNUmakefile Makefile
+  cd ..
+  cd Fortran
+  ln -s GNUmakefile Makefile
+  cd ..
+  cd pgsbox
+  ln -s GNUmakefile Makefile
+  cd ..
+  cd utils
+  ln -s GNUmakefile Makefile
+  cd ..
+
+  make
+}
+
+package() {
+  cd "${srcdir}/${_realname}-${pkgver}"
+
+  # there must be a better way to accomplish all this
+  # copy files so that we can delete them and fix up after install
+  cp C/libwcs.dll.${pkgver} C/libwcs.dll.8
+  cp C/libwcs.dll.${pkgver} C/libwcs.dll
+  mkdir C/wcslib-${pkgver}
+  cp C/*.h C/wcslib-${pkgver}
+  cp Fortran/*.inc C/wcslib-${pkgver}
+  mkdir wcslib-${pkgver}
+
+  mkdir -p "${pkgdir}${MINGW_PREFIX}"{/bin/,/lib/{,/pkgconfig},/share/man/man1}
+  mkdir -p "${pkgdir}${MINGW_PREFIX}"{/include/wcslib-${pkgver}/,/share/doc/wcslib-${pkgver}/{,html/}}
+
+  make install DESTDIR="${pkgdir}"
+
+  # remove and symlink directories properly
+  rm -rf "${pkgdir}${MINGW_PREFIX}"/share/doc/wcslib
+  cd "${pkgdir}${MINGW_PREFIX}"/share/doc
+  ln -s wcslib-${pkgver} wcslib
+  cd -
+  rm -rf "${pkgdir}${MINGW_PREFIX}"/include/wcslib
+  cd "${pkgdir}${MINGW_PREFIX}"/include
+  ln -s wcslib-${pkgver} wcslib
+  cd -
+  # remove extra library copy
+  rm -f "${pkgdir}${MINGW_PREFIX}"/lib/libwcs-8.2.2.a
+}
