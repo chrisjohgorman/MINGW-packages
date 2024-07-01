@@ -1,0 +1,51 @@
+# Maintainer: Chris Gorman <chrisjohgorman@gmail.com>
+
+_realname=thrift
+pkgbase=mingw-w64-python-${_realname}
+pkgname=("${MINGW_PACKAGE_PREFIX}-python-${_realname}")
+pkgver=0.20.0
+pkgrel=1
+pkgdesc="Python bindings for the Apache Thrift RPC system (mingw-w64)"
+arch=('any')
+mingw_arch=('mingw64' 'ucrt64' 'clang64' 'clangarm64')
+url='https://thrift.apache.org/'
+license=(Apache)
+depends=("${MINGW_PACKAGE_PREFIX}-python"
+         "${MINGW_PACKAGE_PREFIX}-python-six")
+makedepends=("${MINGW_PACKAGE_PREFIX}-python-build" 
+	     "${MINGW_PACKAGE_PREFIX}-python-installer"
+	     "${MINGW_PACKAGE_PREFIX}-python-setuptools")
+checkdepends=("${MINGW_PACKAGE_PREFIX}-python-pytest"
+	      "${MINGW_PACKAGE_PREFIX}-python-tornado")
+options=('!strip')
+source=("https://dlcdn.apache.org/${_realname}/${pkgver}/${_realname}-${pkgver}.tar.gz")
+sha256sums=('b5d8311a779470e1502c027f428a1db542f5c051c8e1280ccd2163fa935ff2d6')
+
+build() {
+  msg "Python build for ${MSYSTEM}"
+  cd "${srcdir}"
+  cp -r "${_realname}-${pkgver}" "python-build-${MSYSTEM}" && cd "python-build-${MSYSTEM}/lib/py"
+
+  ${MINGW_PREFIX}/bin/python -m build --wheel --skip-dependency-check --no-isolation
+}
+
+check() {
+  msg "Python test for ${MSYSTEM}"
+  cd "${srcdir}/python-build-${MSYSTEM}/lib/py"
+
+# The test command will usually depend upon what is contained in the tox.ini file
+# or in the [testenv:py] section of the pyproject.toml file.
+  ${MINGW_PREFIX}/bin/python -m pytest
+}
+
+package() {
+  msg "Python install for ${MSYSTEM}"
+  cd "${srcdir}/python-build-${MSYSTEM}/lib/py"
+
+  MSYS2_ARG_CONV_EXCL="--prefix=" \
+    ${MINGW_PREFIX}/bin/python -m installer --prefix=${MINGW_PREFIX} \
+    --destdir="${pkgdir}" dist/*.whl
+
+  cd "${srcdir}/python-build-${MSYSTEM}"
+  install -Dm644 LICENSE "${pkgdir}${MINGW_PREFIX}/share/licenses/python-${_realname}/LICENSE"
+}
