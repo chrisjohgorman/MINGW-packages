@@ -1,0 +1,11 @@
+--- astropy-6.0.1/astropy/io/fits/hdu/compressed/src/compression.c.orig	2024-05-26 14:46:46.098103600 -0400
++++ astropy-6.0.1/astropy/io/fits/hdu/compressed/src/compression.c	2024-05-26 14:49:57.742841900 -0400
+@@ -8,6 +8,8 @@
+ #include <quantize.h>
+ #include <unquantize.h>
+ #include <ricecomp.h>
++#include <pthread.h>
++#include <sys/types.h>
+ 
+ 
+ // Compatibility code because we pick up fitsio2.h from cextern. Can
