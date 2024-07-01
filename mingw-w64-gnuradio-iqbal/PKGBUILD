@@ -1,0 +1,69 @@
+# Maintainer: Chris Gorman <chrisjohgorman@gmail.com>
+
+_realname=gnuradio-iqbal
+pkgbase=mingw-w64-${_realname}
+pkgname=("${MINGW_PACKAGE_PREFIX}-${_realname}")
+pkgver=0.37.2.r21.gfbee239
+pkgrel=1
+pkgdesc="Gnuradio I/Q balancing (mingw-w64)"
+arch=('any')
+mingw_arch=('mingw64' 'ucrt64' 'clang64' 'clangarm64')
+url="https://cgit.osmocom.org/gr-iqbal"
+license=('GPL3')
+depends=("${MINGW_PACKAGE_PREFIX}-fftw"
+         "${MINGW_PACKAGE_PREFIX}-gnuradio")
+makedepends=("${MINGW_PACKAGE_PREFIX}-cmake"
+             "${MINGW_PACKAGE_PREFIX}-ninja"
+             "${MINGW_PACKAGE_PREFIX}-cc"
+             "${MINGW_PACKAGE_PREFIX}-boost"
+             "${MINGW_PACKAGE_PREFIX}-fftw"
+             "${MINGW_PACKAGE_PREFIX}-gnuradio"
+             "${MINGW_PACKAGE_PREFIX}-gmp"
+             "${MINGW_PACKAGE_PREFIX}-volk"
+             "${MINGW_PACKAGE_PREFIX}-pybind11"
+             'git')
+_commit='fbee239a6fb36dd2fb564f6e6a0d393c4bc844db'
+source=("${_realname}"::"git+https://gitea.osmocom.org/sdr/gr-iqbal.git#commit=${_commit}"
+        "git+https://gitea.osmocom.org/sdr/libosmo-dsp.git")
+
+sha256sums=('d26a6f98e2c8ed08282eabf2d7f22ffa71b95077ea39f04fb88f73e20b60a7c9'
+            'SKIP')
+pkgver() {
+  cd "${srcdir}/${_realname}"
+
+  git describe --long "${_commit}" | sed 's/\([^-]*-g\)/r\1/;s/-/./g;s/^v//g'
+}
+
+prepare() {
+  cd "${srcdir}/${_realname}"
+
+  git submodule init
+  git submodule set-url libosmo-dsp "$srcdir/libosmo-dsp"
+  git -c protocol.file.allow=always submodule update
+}
+
+build() {
+  declare -a extra_config
+  if check_option "debug" "n"; then
+    extra_config+=("-DCMAKE_BUILD_TYPE=Release")
+  else
+    extra_config+=("-DCMAKE_BUILD_TYPE=Debug")
+  fi
+
+  MSYS2_ARG_CONV_EXCL="-DCMAKE_INSTALL_PREFIX=" \
+    "${MINGW_PREFIX}"/bin/cmake.exe \
+      -GNinja \
+      -DCMAKE_INSTALL_PREFIX="${MINGW_PREFIX}" \
+      "${extra_config[@]}" \
+      -DBUILD_SHARED_LIBS=ON \
+      -S "${_realname}" \
+      -B "build-${MSYSTEM}"
+
+  "${MINGW_PREFIX}"/bin/cmake.exe --build "build-${MSYSTEM}"
+}
+
+package() {
+  DESTDIR="${pkgdir}" "${MINGW_PREFIX}"/bin/cmake.exe --install "build-${MSYSTEM}"
+
+  install -Dm644 "${srcdir}/${_realname}/COPYING" "${pkgdir}${MINGW_PREFIX}/share/licenses/${_realname}/COPYING"
+}
