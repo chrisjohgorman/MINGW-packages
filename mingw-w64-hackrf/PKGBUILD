@@ -1,0 +1,65 @@
+# Maintainer: Chris Gorman <chrisjohgorman@gmail.com>
+
+_realname=hackrf
+pkgbase=mingw-w64-${_realname}
+pkgname=("${MINGW_PACKAGE_PREFIX}-${_realname}")
+pkgver=2024.02.1
+pkgrel=1
+pkgdesc="Driver for HackRF, allowing general purpose software defined radio. (mingw-w64)"
+arch=('any')
+mingw_arch=('mingw64' 'ucrt64' 'clang64' 'clangarm64')
+url='https://github.com/mossmann/hackrf'
+license=('GPL2')
+depends=("${MINGW_PACKAGE_PREFIX}-fftw"
+         "${MINGW_PACKAGE_PREFIX}-libusb")
+makedepends=("${MINGW_PACKAGE_PREFIX}-cmake"
+             "${MINGW_PACKAGE_PREFIX}-ninja"
+             "${MINGW_PACKAGE_PREFIX}-cc")
+source=("https://github.com/mossmann/${_realname}/releases/download/v${pkgver}/${_realname}-${pkgver}.tar.xz")
+sha256sums=('d9ced67e6b801cd02c18d0c4654ed18a4bcb36c24a64330c347dfccbd859ad16')
+
+#prepare() {
+#  cd "${srcdir}"/${_realname}-${pkgver}
+#
+#  patch -Np1 -i "${srcdir}"/0001-A-really-important-fix.patch
+#  patch -Np1 -i "${srcdir}"/0002-A-less-important-fix.patch
+#}
+
+build() {
+  declare -a extra_config
+  if check_option "debug" "n"; then
+    extra_config+=("-DCMAKE_BUILD_TYPE=Release")
+  else
+    extra_config+=("-DCMAKE_BUILD_TYPE=Debug")
+  fi
+
+  MSYS2_ARG_CONV_EXCL="-DCMAKE_INSTALL_PREFIX=" \
+    "${MINGW_PREFIX}"/bin/cmake.exe \
+      -GNinja \
+      -DCMAKE_INSTALL_PREFIX="${MINGW_PREFIX}" \
+      -DLIBUSB_INCLUDE_DIR="${MINGW_PREFIX}/include/libusb-1.0" \
+      -DFFTW_LIBRARIES="${MINGW_PREFIX}/lib" \
+      "${extra_config[@]}" \
+      -DBUILD_{SHARED,STATIC}_LIBS=ON \
+      -S "${_realname}-${pkgver}/host" \
+      -B "build-${MSYSTEM}"
+
+  "${MINGW_PREFIX}"/bin/cmake.exe --build "build-${MSYSTEM}"
+}
+
+#check() {
+#  "${MINGW_PREFIX}"/bin/cmake.exe --build "build-${MSYSTEM}" --target test
+#}
+
+package() {
+  DESTDIR="${pkgdir}" "${MINGW_PREFIX}"/bin/cmake.exe --install "build-${MSYSTEM}"
+
+  cd "${srcdir}/${_realname}-${pkgver}"
+  pushd firmware-bin
+  for i in *.{bin,dfu}; do
+    install -vDm644 "$i" "${pkgdir}/${MINGW_PREFIX}/share/hackrf/$i"
+  done
+  popd  
+
+  install -Dm644 "${srcdir}/${_realname}-${pkgver}/COPYING" "${pkgdir}${MINGW_PREFIX}/share/licenses/${_realname}/COPYING"
+}
