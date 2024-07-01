@@ -1,0 +1,57 @@
+# Maintainer: Chris Gorman <chrisjohgorman@gmail.com>
+
+_realname=gqrx
+pkgbase=mingw-w64-${_realname}
+pkgname=("${MINGW_PACKAGE_PREFIX}-${_realname}")
+pkgver=2.17.4
+pkgrel=1
+pkgdesc="Interactive SDR receiver waterfall for many devices. (mingw-w64)"
+arch=('any')
+mingw_arch=('mingw64' 'ucrt64' 'clang64' 'clangarm64')
+url='https://gqrx.dk/'
+license=('GPL3')
+depends=("${MINGW_PACKAGE_PREFIX}-gcc-libs"
+         "${MINGW_PACKAGE_PREFIX}-volk"
+         "${MINGW_PACKAGE_PREFIX}-qt6-base"
+         "${MINGW_PACKAGE_PREFIX}-qt6-svg")
+makedepends=("${MINGW_PACKAGE_PREFIX}-cmake"
+             "${MINGW_PACKAGE_PREFIX}-ninja"
+             "${MINGW_PACKAGE_PREFIX}-boost"
+             "${MINGW_PACKAGE_PREFIX}-gnuradio"
+             "${MINGW_PACKAGE_PREFIX}-gnuradio-osmosdr"
+             "${MINGW_PACKAGE_PREFIX}-portaudio"
+             "${MINGW_PACKAGE_PREFIX}-cc")
+source=("https://github.com/gqrx-sdr/${_realname}/archive/v${pkgver}/${_realname}-v${pkgver}.tar.gz")
+sha256sums=('06be55cd8ccadd3cb08218a4234f94c5c2bcd9e7b63a775650e473115e93d4e7')
+
+build() {
+  declare -a extra_config
+  if check_option "debug" "n"; then
+    extra_config+=("-DCMAKE_BUILD_TYPE=Release")
+  else
+    extra_config+=("-DCMAKE_BUILD_TYPE=Debug")
+  fi
+
+  MSYS2_ARG_CONV_EXCL="-DCMAKE_INSTALL_PREFIX=" \
+    "${MINGW_PREFIX}"/bin/cmake.exe \
+      -GNinja \
+      -DCMAKE_INSTALL_PREFIX="${MINGW_PREFIX}" \
+      "${extra_config[@]}" \
+      -DBUILD_SHARED_LIBS=ON \
+      -S "${_realname}-${pkgver}" \
+      -B "build-${MSYSTEM}"
+
+  "${MINGW_PREFIX}"/bin/cmake.exe --build "build-${MSYSTEM}" --verbose
+}
+
+check() {
+  "${MINGW_PREFIX}"/bin/ctest.exe --test-dir "build-${MSYSTEM}" --output-on-failure
+}
+
+package() {
+  DESTDIR="${pkgdir}" "${MINGW_PREFIX}"/bin/cmake.exe --install "build-${MSYSTEM}"
+
+
+  install -Dm644 "${srcdir}/${_realname}-${pkgver}/COPYING" "${pkgdir}${MINGW_PREFIX}/share/licenses/${_realname}/COPYING"
+  install -Dm644 "${srcdir}/${_realname}-${pkgver}/LICENSE-CTK" "${pkgdir}${MINGW_PREFIX}/share/licenses/${_realname}/LICENSE-CTK"
+}
