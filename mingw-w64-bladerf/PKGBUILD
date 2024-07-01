@@ -1,0 +1,113 @@
+# Maintainer: Chris Gorman <chrisjohgorman@gmail.com>
+
+_realname=bladerf
+pkgbase=mingw-w64-${_realname}
+pkgname=("${MINGW_PACKAGE_PREFIX}-${_realname}")
+pkgver=2023.02
+_FPGAver=0.15.0
+_firmver=2.4.0
+_noOScommit=0bba46e # upstream has pinned a submodule to this
+pkgrel=1
+pkgdesc="Driver, userspace, fpga & firmware for the bladeRF SDR. (mingw-w64)"
+arch=('any')
+mingw_arch=('mingw64' 'ucrt64' 'clang64' 'clangarm64')
+url='https://github.com/Nuand/bladeRF/'
+license=('LICENSE')
+depends=("${MINGW_PACKAGE_PREFIX}-libusb")
+makedepends=("${MINGW_PACKAGE_PREFIX}-cmake"
+             "${MINGW_PACKAGE_PREFIX}-ninja"
+             "${MINGW_PACKAGE_PREFIX}-cc"
+             "${MINGW_PACKAGE_PREFIX}-doxygen")
+source=("bladerf-$pkgver.tgz::https://github.com/Nuand/bladeRF/archive/refs/tags/$pkgver.tar.gz"
+        "noOS-$_noOScommit.tgz::https://github.com/analogdevicesinc/no-OS/archive/$_noOScommit.tar.gz"
+        "hostedxA4-$_FPGAver.rbf::https://nuand.com/fpga/v$_FPGAver/hostedxA4.rbf"
+        "hostedxA9-$_FPGAver.rbf::https://nuand.com/fpga/v$_FPGAver/hostedxA9.rbf"
+        "hostedx40-$_FPGAver.rbf::https://nuand.com/fpga/v$_FPGAver/hostedx40.rbf"
+        "hostedx115-$_FPGAver.rbf::https://nuand.com/fpga/v$_FPGAver/hostedx115.rbf"
+        "https://www.nuand.com/fx3/bladeRF_fw_v$_firmver.img"
+        0001-no-copy-libraries-to-build-output.patch
+        0002-do-not-look-for-pthreads-copying-lib.patch
+        0003-gcc14-calloc-reorder-arguments.patch
+        0004-force-define-setenv_h-bladerf-cli.patch
+        0005-change-msvc-to-win32-for-setenv-unsetenv.patch
+        0006-bladerf-cli-msvc-to-win32-setenv.patch)
+sha256sums=('3bbac54ad7d6e35be31eb12393be5e7102a070fb1ddc176992d64a6a623670c7'
+            'b77a86780e82ff592dd3cbcbf916d6f421f5cb7b523b800255483b1992aea88d'
+            'ef94df12726d348ad5b2a9c999063408a952695f91991461775af8f3a26018fd'
+            'c6ab763460f36ee2aaf9b950d0b0e008519e84051e5e38a4e486fd04103bb974'
+            '2fee0764fdec78763ad64d20dde8cbe1e4fb7c57e2c256afb0125577d3e9e45f'
+            '0d5c6c033a4338623ed3eeadfaad7d23de20dcfed8203c3ae78c4e534cdec3be'
+            '670d1ca7aa1c6007eb09900351c3aa997e4be316dbc0a2fc1532a908d02cc0a9'
+            '4fe87bf2e219ba138dafe95af2e50f976f93956dca456d2805922fde1eb335d4'
+            '1791cf2f9cb67162ca0427de4e7ef922cc653a2e292457930db64b88ca972e55'
+            '8adbbd121691339275c9b249e26253cc79df856e326e2504e4a91f377390bca8'
+            'c97091b429da18d4e2f002941ea17c12433b131eb7f5399a288948d37b282fc1'
+            'ebaa0ab92ab2e0ac947736a717d3c1404ab3e3311eea008ce7568e2d14ffa038'
+            '5dac528b012a4a64bea63654b9931c252a89364a1a339ba59442cf178c03df3c')
+
+prepare() {
+  cd "${srcdir}"/${_realname}-${pkgver}
+
+  # todo, report warning
+  sed -i '94i add_definitions(-Wno-error=format-truncation)' host/CMakeLists.txt
+
+  patch -Np1 -i "${srcdir}"/0001-no-copy-libraries-to-build-output.patch
+  patch -Np1 -i "${srcdir}"/0002-do-not-look-for-pthreads-copying-lib.patch
+  patch -Np1 -i "${srcdir}"/0003-gcc14-calloc-reorder-arguments.patch
+  patch -Np1 -i "${srcdir}"/0004-force-define-setenv_h-bladerf-cli.patch
+  patch -Np1 -i "${srcdir}"/0005-change-msvc-to-win32-for-setenv-unsetenv.patch
+  patch -Np1 -i "${srcdir}"/0006-bladerf-cli-msvc-to-win32-setenv.patch
+
+  # manually replace the submodules
+  # because "git submodule init/update" doesn't work with a release tarball
+  rmdir --ignore-fail-on-non-empty thirdparty/analogdevicesinc/no-OS
+  ln -s "$srcdir/no-OS-$_noOSver"* thirdparty/analogdevicesinc/no-OS
+
+}
+
+build() {
+
+  if [[ ${CC} == gcc ]]; then
+    export CFLAGS="${CFLAGS} -Wno-cast-function-type -Wno-error=stringop-truncation" 
+    export LDFLAGS="${LDFLAGS} -Wl,--allow-multiple-definition"
+  fi
+  if [[ ${CC} == clang ]]; then
+    export CFLAGS="${CFLAGS} -Wno-error=unused-but-set-variable" 
+    export LDFLAGS="${LDFLAGS} -lpthread -Wl,--allow-multiple-definition"
+  fi
+
+  MSYS2_ARG_CONV_EXCL="-DCMAKE_INSTALL_PREFIX=" \
+    "${MINGW_PREFIX}"/bin/cmake.exe \
+      -GNinja \
+      -DCMAKE_INSTALL_PREFIX="${MINGW_PREFIX}" \
+      -DCMAKE_BUILD_TYPE=Release \
+      -DBUILD_SHARED_LIBS=ON \
+      -DINSTALL_UDEV_RULES=OFF \
+      -DBUILD_DOCUMENTATION=OFF \
+      -DLIBUSB_PATH="${MINGW_PREFIX}/lib" \
+      -Dusb_LIBRARY:FILEPATH="${MINGW_PREFIX}/bin/libusb-1.0.dll" \
+      -S "${srcdir}/bladeRF-${pkgver}/host" \
+      -B "build-${MSYSTEM}"
+
+  "${MINGW_PREFIX}"/bin/cmake.exe --build "build-${MSYSTEM}"
+}
+
+#check() {
+#  "${MINGW_PREFIX}"/bin/cmake.exe --build "build-${MSYSTEM}" --target test
+#}
+
+package() {
+  DESTDIR="${pkgdir}" "${MINGW_PREFIX}"/bin/cmake.exe --install "build-${MSYSTEM}"
+
+  #move libbladeRF.dll to bin where it is expected in bin
+  mv "${pkgdir}/${MINGW_PREFIX}/lib/libbladeRF.dll" "${pkgdir}/${MINGW_PREFIX}/bin/"
+
+  cd "${srcdir}"
+  install -Dm644 "bladeRF_fw_v${_firmver}.img" "${pkgdir}/${MINGW_PREFIX}/share/bladerf/firmware/bladeRF_fw_v${_firmver}.img"
+  install -Dm644 "hostedxA4-${_FPGAver}.rbf"     "${pkgdir}/${MINGW_PREFIX}/share/bladerf/fpga/hostedxA4.rbf"
+  install -Dm644 "hostedxA9-${_FPGAver}.rbf"     "${pkgdir}/${MINGW_PREFIX}/share/bladerf/fpga/hostedxA9.rbf"
+  install -Dm644 "hostedx40-${_FPGAver}.rbf"     "${pkgdir}/${MINGW_PREFIX}/share/bladerf/fpga/hostedx40.rbf"
+  install -Dm644 "hostedx115-${_FPGAver}.rbf"    "${pkgdir}/${MINGW_PREFIX}/share/bladerf/fpga/hostedx115.rbf"
+
+  #install -Dm644 "${srcdir}/${_realname}-${pkgver}/LICENSE" "${pkgdir}${MINGW_PREFIX}/share/licenses/${_realname}/LICENSE"
+}

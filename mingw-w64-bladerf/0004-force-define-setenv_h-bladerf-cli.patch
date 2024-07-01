@@ -1,0 +1,13 @@
+--- bladeRF-2023.02/host/utilities/bladeRF-cli/src/main.c.orig	2024-06-10 10:24:46.508340400 -0400
++++ bladeRF-2023.02/host/utilities/bladeRF-cli/src/main.c	2024-06-10 10:25:01.890710300 -0400
+@@ -32,10 +32,7 @@
+ #include "common.h"
+ #include "cmd.h"
+ #include "version.h"
+-
+-#if BLADERF_OS_WINDOWS
+ #include "setenv.h"
+-#endif
+ 
+ #define OPTSTR "e:L:d:f:l:s:ipv:h"
+ 

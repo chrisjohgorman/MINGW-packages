@@ -1,0 +1,11 @@
+--- bladeRF-2023.02/host/cmake/modules/FindLibPThreadsWin32.cmake.orig	2024-06-10 07:02:26.738314900 -0400
++++ bladeRF-2023.02/host/cmake/modules/FindLibPThreadsWin32.cmake	2024-06-10 07:03:11.655606500 -0400
+@@ -95,7 +95,7 @@
+ 
+ set ( LIBPTHREADSWIN32_LIB_COPYING
+       "${LIBPTHREADSWIN32_PATH}/COPYING.LIB" )
+-if ( NOT EXISTS ${LIBPTHREADSWIN32_LIB_COPYING} )
++if ( EXISTS ${LIBPTHREADSWIN32_LIB_COPYING} )
+     message(FATAL_ERROR "Unable to find pthread-win32 COPYING.LIB file")
+ endif ()
+ 

@@ -1,0 +1,11 @@
+--- bladeRF-2023.02/host/libraries/libbladeRF/CMakeLists.txt.orig	2024-06-11 07:54:33.118201600 -0400
++++ bladeRF-2023.02/host/libraries/libbladeRF/CMakeLists.txt	2024-06-11 07:57:59.340052900 -0400
+@@ -411,7 +411,7 @@
+     endif()
+ endif()
+ 
+-if(MSVC)
++if(WIN32)
+     if (NOT HAVE_CLOCK_GETTIME)
+         message(STATUS "Including clock_gettime.c shim for Windows")
+         set(LIBBLADERF_SOURCE ${LIBBLADERF_SOURCE}

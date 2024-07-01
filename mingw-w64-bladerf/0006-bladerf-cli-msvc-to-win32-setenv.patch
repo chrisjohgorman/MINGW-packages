@@ -1,0 +1,11 @@
+--- bladeRF-2023.02/host/utilities/bladeRF-cli/CMakeLists.txt.orig	2024-06-11 08:16:07.692331400 -0400
++++ bladeRF-2023.02/host/utilities/bladeRF-cli/CMakeLists.txt	2024-06-11 08:16:23.393668500 -0400
+@@ -239,7 +239,7 @@
+     set(BLADERF_CLI_SOURCE ${BLADERF_CLI_SOURCE} src/input/fgets.c)
+ endif()
+ 
+-if(MSVC)
++if(WIN32)
+     set(BLADERF_CLI_SOURCE ${BLADERF_CLI_SOURCE}
+             ${BLADERF_HOST_COMMON_SOURCE_DIR}/windows/getopt_long.c
+             ${BLADERF_HOST_COMMON_SOURCE_DIR}/windows/clock_gettime.c

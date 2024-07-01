@@ -1,0 +1,17 @@
+--- bladeRF-2023.02/host/CMakeLists.txt.orig	2024-06-11 07:28:46.981546800 -0400
++++ bladeRF-2023.02/host/CMakeLists.txt	2024-06-11 07:30:07.418053500 -0400
+@@ -227,7 +227,7 @@
+ ################################################################################
+ # Windows-only, Post build: Copy libraries to our build output directory
+ ################################################################################
+-if(WIN32 AND NOT CMAKE_CROSSCOMPILING)
++if(MSVC AND NOT CMAKE_CROSSCOMPILING)
+     find_package(LibPThreadsWin32)
+     if(LIBPTHREADSWIN32_FOUND)
+         set(WIN_RUNTIME_ITEMS ${WIN_RUNTIME_ITEMS}
+@@ -406,4 +406,4 @@
+ 
+     add_custom_target(win_runtime ALL DEPENDS ${WIN_RUNTIME_ITEMS})
+ 
+-endif(WIN32 AND NOT CMAKE_CROSSCOMPILING)
++endif(MSVC AND NOT CMAKE_CROSSCOMPILING)
