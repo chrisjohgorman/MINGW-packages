@@ -1,0 +1,51 @@
+# Maintainer: Chris Gorman <chrisjohgorman@gmail.com>
+
+_realname=airspy
+pkgbase=mingw-w64-${_realname}
+pkgname=("${MINGW_PACKAGE_PREFIX}-${_realname}")
+pkgver=1.0.10
+pkgrel=1
+pkgdesc="Host code for Airspy SDR. (mingw-w64)"
+arch=('any')
+mingw_arch=('mingw64' 'ucrt64' 'clang64' 'clangarm64')
+url='https://www.airspy.com'
+license=('GPL2')
+depends=("${MINGW_PACKAGE_PREFIX}-libusb")
+makedepends=("${MINGW_PACKAGE_PREFIX}-cmake"
+             "${MINGW_PACKAGE_PREFIX}-ninja"
+             "${MINGW_PACKAGE_PREFIX}-cc")
+source=("${_realname}-${pkgver}.tar.gz::https://github.com/${_realname}/airspyone_host/archive/v${pkgver}.tar.gz"
+        0001-remove-unused-code-win32.patch)
+sha256sums=('fcca23911c9a9da71cebeffeba708c59d1d6401eec6eb2dd73cae35b8ea3c613'
+            '26a9c9065f08a698c0e8b21be9ce5c9d0ff9abf00115a4d7b3d17ba2697a6af5')
+
+prepare() {
+  cd "${srcdir}"/${_realname}one_host-${pkgver}
+
+  patch -Np1 -i "${srcdir}"/0001-remove-unused-code-win32.patch
+}
+
+build() {
+  declare -a extra_config
+  if check_option "debug" "n"; then
+    extra_config+=("-DCMAKE_BUILD_TYPE=Release")
+  else
+    extra_config+=("-DCMAKE_BUILD_TYPE=Debug")
+  fi
+  
+
+  MSYS2_ARG_CONV_EXCL="-DCMAKE_INSTALL_PREFIX=" \
+    "${MINGW_PREFIX}"/bin/cmake.exe \
+      -GNinja \
+      -DCMAKE_INSTALL_PREFIX="${MINGW_PREFIX}" \
+      "${extra_config[@]}" \
+      -DBUILD_SHARED_LIBS=ON \
+      -S "${_realname}one_host-${pkgver}" \
+      -B "build-${MSYSTEM}"
+
+  "${MINGW_PREFIX}"/bin/cmake.exe --build "build-${MSYSTEM}"
+}
+
+package() {
+  DESTDIR="${pkgdir}" "${MINGW_PREFIX}"/bin/cmake.exe --install "build-${MSYSTEM}"
+}

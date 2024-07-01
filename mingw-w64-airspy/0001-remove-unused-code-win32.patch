@@ -1,0 +1,15 @@
+--- airspyone_host-1.0.10/CMakeLists.txt.orig	2024-06-30 13:15:39.217460700 -0400
++++ airspyone_host-1.0.10/CMakeLists.txt	2024-06-30 13:16:24.150586100 -0400
+@@ -36,12 +36,5 @@
+      ${CMAKE_CURRENT_BINARY_DIR}/airspy-tools/src/libusb-1.0.dll
+  COPYONLY)
+  endif()
+-
+- if (NOT DEFINED THREADS_PTHREADS_WIN32_LIBRARY)
+- configure_file(
+-     ${CMAKE_CURRENT_BINARY_DIR}/../libs_win32/pthreadGC2.dll
+-     ${CMAKE_CURRENT_BINARY_DIR}/airspy-tools/src/pthreadGC2.dll
+- COPYONLY)
+- endif()
+ endif()
+ 
