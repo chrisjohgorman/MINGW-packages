@@ -1,0 +1,36 @@
+# Maintainer: Chris Gorman <chrisjohgorman@gmail.com>
+
+_realname=skyfield-data
+pkgbase=mingw-w64-python-${_realname}
+pkgname=("${MINGW_PACKAGE_PREFIX}-python-${_realname}")
+pkgver=5.0.0
+pkgrel=1
+pkgdesc="Minimal data files to work with python-skyfield (mingw-w64)"
+arch=('any')
+mingw_arch=('mingw64' 'ucrt64' 'clang64' 'clangarm64')
+url='https://github.com/brunobord/skyfield-data'
+license=('MIT')
+depends=("${MINGW_PACKAGE_PREFIX}-python"
+	 "${MINGW_PACKAGE_PREFIX}-python-skyfield")
+makedepends=("${MINGW_PACKAGE_PREFIX}-python-build" "${MINGW_PACKAGE_PREFIX}-python-installer")
+checkdepends=("${MINGW_PACKAGE_PREFIX}-python-pytest")
+options=('!strip')
+source=("$_realname-v$pkgver.tar.gz::https://codeload.github.com/brunobord/skyfield-data/tar.gz/refs/tags/$pkgver")
+sha256sums=('bbe8d7542338097debdcfa41492af9fe8b2255c1b0f03d8acbd0b94cfaf61017')
+
+build() {
+  msg "Python build for ${MSYSTEM}"
+  cd "${srcdir}"
+  cp -r "${_realname}-${pkgver}" "python-build-${MSYSTEM}" && cd "python-build-${MSYSTEM}"
+
+  make package
+}
+
+package() {
+  msg "Python install for ${MSYSTEM}"
+  cd "${srcdir}/python-build-${MSYSTEM}"
+
+  python setup.py install --root=${pkgdir}/  --optimize=1 --skip-build
+
+#  install -Dm644 LICENSE "${pkgdir}${MINGW_PREFIX}/share/licenses/python-${_realname}/LICENSE"
+}
